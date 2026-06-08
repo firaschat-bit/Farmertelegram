@@ -3,8 +3,8 @@ import google.generativeai as genai
 from PIL import Image
 import io
 
-# الرموز السرية الخاصة بك والمحمية تماماً
-TELEGRAM_TOKEN = '8987486276:AAFc6yFa5JjD_4jaVsbkneGRUsXhspm03S4'
+# التوكن الجديد المحدث بالكامل
+TELEGRAM_TOKEN = '8987486276:AAGtkbjfknrTFLn9cKMQZEn65vz003RXVdg'
 GEMINI_API_KEY = 'AQ.Ab8RN6KWBT84eYAnLaV1eD4yLcdLbEn1qM5sEWKVmZxGVY03ag'
 
 # إعداد مكتبة جمناي
@@ -16,7 +16,7 @@ bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "مرحباً بك أستاذ فراس! أرسل لي أي صورة تحتوي على قائمة مواد، أسعار، أو جداول إنشائية، وسأقوم بقراءتها وتنسيقها لك فوراً بواسطة الذكاء الاصطناعي.")
+    bot.reply_to(message, "مرحباً بك! أرسل لي أي صورة تحتوي على قائمة مواد أو أسعار، وسأقوم بقراءتها وتنسيقها لك فوراً بواسطة الذكاء الاصطناعي.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_menu_photo(message):
@@ -30,11 +30,11 @@ def handle_menu_photo(message):
         # تحويل الملف إلى صورة يمكن لـ Gemini قراءتها
         image = Image.open(io.BytesIO(downloaded_file))
         
-        # التوجيهات الموجهة للذكاء الاصطناعي لفرز القائمة بدقة هندسية
+        # التوجيهات الموجهة للذكاء الاصطناعي لفرز القائمة
         prompt = (
-            "أنت مساعد محترف وخبير في قراءة الصور وتفريغ الجداول والبيانات. "
-            "قم باستخراج جميع المواد والأسعار أو البيانات الموجودة في هذه الصورة بدقة عالية، "
-            "ورتبها في جدول واضح ومنظم جداً باللغة العربية مع تنظيم الترقيم والأسماء والرموز."
+            "أنت مساعد محترف في قراءة الصور وتفريغ البيانات. "
+            "قم باستخراج جميع المواد والأسعار الموجودة في هذه الصورة، "
+            "ورتبها في جدول واضح ومنظم باللغة العربية مع تنظيم الترقيم والأسماء."
         )
         
         # إرسال الصورة لـ Gemini لطلب التحليل
