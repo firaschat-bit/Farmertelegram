@@ -1,32 +1,24 @@
 import os
 import sys
 import subprocess
-import threading
-import io
 import telebot
 from PIL import Image
-import google.generativeai as genai
+import io
 from flask import Flask, request
+from google import genai # استخدام المكتبة الجديدة والمدعومة
 
-# 1. تثبيت المكتبات الضرورية
+# 1. تثبيت المكتبات الصحيحة
 def install_requirements():
-    required = ["pyTelegramBotAPI", "Pillow", "google-generativeai", "flask"]
+    required = ["pyTelegramBotAPI", "Pillow", "google-genai", "flask"]
     for package in required:
-        try:
-            __import__(package.replace("-", "_"))
-        except ImportError:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        try: __import__(package.replace("-", "_"))
+        except ImportError: subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
 install_requirements()
 
-# 2. إعداد Gemini بدون مسارات تجريبية (v1beta)
-genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-
-# التعديل الحاسم هنا: استخدام النسخة المستقرة مباشرة
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-# 3. إعداد البوت و Flask
+# 2. إعدادات البوت والعميل الجديد
 bot = telebot.TeleBot(os.getenv('BOT_TOKEN'))
+client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 app = Flask(__name__)
 
 @app.route('/' + os.getenv('BOT_TOKEN'), methods=['POST'])
@@ -38,7 +30,7 @@ def webhook():
 
 @bot.message_handler(commands=['start'])
 def start(m):
-    bot.reply_to(m, "جاهز يا هندسة! أرسل صورة الفاتورة.")
+    bot.reply_to(m, "البوت يعمل الآن بأحدث مكتبة من Google. أرسل صورة الفاتورة.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(m):
@@ -47,8 +39,11 @@ def handle_photo(m):
         file_info = bot.get_file(m.photo[-1].file_id)
         img = Image.open(io.BytesIO(bot.download_file(file_info.file_path)))
         
-        # استدعاء الموديل بوضوح
-        response = model.generate_content(["قم باستخراج بيانات الفاتورة في جدول Markdown منظم.", img])
+        # استخدام المكتبة الجديدة
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=["قم باستخراج بيانات الفاتورة في جدول Markdown منظم.", img]
+        )
         
         bot.delete_message(m.chat.id, status.message_id)
         bot.reply_to(m, response.text, parse_mode="Markdown")
