@@ -3,15 +3,34 @@ import telebot
 import google.generativeai as genai
 from PIL import Image
 import io
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# الكود نظيف وآمن 100%، يقرأ التوكن من إعدادات سيرفر Render مباشرة
+# 1. فتح منفذ اتصال وهمي لإرضاء سيرفر Render ومنع رسالة No open ports
+def run_dummy_server():
+    class DummyHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"Bot is running successfully!")
+            
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), DummyHandler)
+    print(f"Dummy server started on port {port}")
+    server.serve_forever()
+
+# تشغيل السيرفر الوهمي في خيط منفصل فوراً
+threading.Thread(target=run_dummy_server, daemon=True).start()
+
+# 2. سحب التوكن بأمان من إعدادات بيئة العمل المحمية لـ Render
 TELEGRAM_TOKEN = os.getenv('BOT_TOKEN')
 
 # مفتاح جمناي المعتمد
 GEMINI_API_KEY = 'AQ.Ab8RN6KWBT84eYAnLaV1eD4yLcdLbEn1qM5sEWKVmZxGVY03ag'
 
 if not TELEGRAM_TOKEN:
-    raise ValueError("خطأ: لم يتم العثور على متغير البيئة BOT_TOKEN في إعدادات Render!")
+    raise ValueError("خطأ: لم يتم العثور على متغير البيئة BOT_TOKEN!")
 
 # إعداد مكتبة جمناي
 genai.configure(api_key=GEMINI_API_KEY)
@@ -28,7 +47,7 @@ except:
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "مرحباً بك! أرسل لي أي صورة تحتوي على قائمة مواد أو أسعار، وسأقوم بقراءتها وتنسيقها لك فوراً بواسطة الذكاء الاصطناعي.")
+    bot.reply_to(message, "مرحباً بك يا هندسة! أنا جاهز ومستقر تماماً الآن. أرسل لي أي صورة تحتوي على قائمة مواد أو أسعار، وسأقوم بفرزها فوراً بواسطة الذكاء الاصطناعي.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_menu_photo(message):
@@ -52,6 +71,6 @@ def handle_menu_photo(message):
     except Exception as e:
         bot.reply_to(message, f"عذراً، حدث خطأ أثناء معالجة الصورة: {str(e)}")
 
-# استمرار تشغيل البوت
-print("البوت الآمن يعمل الآن بنجاح...")
+# استمرار تشغيل البوت دون توقف
+print("البوت الآمن يعمل الآن بنجاح وبأعلى كفاءة...")
 bot.infinity_polling(skip_pending=True)
