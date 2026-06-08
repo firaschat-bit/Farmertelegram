@@ -6,7 +6,7 @@ import io
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# 1. فتح منفذ اتصال وهمي لإرضاء سيرفر Render ومنع رسالة No open ports
+# 1. تشغيل منفذ اتصال وهمي لاستقرار سيرفر Render منعاً لرسائل الفحص
 def run_dummy_server():
     class DummyHandler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -17,29 +17,26 @@ def run_dummy_server():
             
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), DummyHandler)
-    print(f"Dummy server started on port {port}")
     server.serve_forever()
 
-# تشغيل السيرفر الوهمي في خيط منفصل فوراً
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
-# 2. سحب التوكن بأمان من إعدادات بيئة العمل المحمية لـ Render
+# 2. سحب توكن تيليجرام ومفتاح جمناي تلقائياً من بيئة Render الآمنة
 TELEGRAM_TOKEN = os.getenv('BOT_TOKEN')
-
-# مفتاح جمناي المعتمد
-GEMINI_API_KEY = 'AQ.Ab8RN6KWBT84eYAnLaV1eD4yLcdLbEn1qM5sEWKVmZxGVY03ag'
+GEMINI_KEY = os.getenv('GEMINI_API_KEY')
 
 if not TELEGRAM_TOKEN:
     raise ValueError("خطأ: لم يتم العثور على متغير البيئة BOT_TOKEN!")
+if not GEMINI_KEY:
+    raise ValueError("خطأ: لم يتم العثور على متغير البيئة GEMINI_API_KEY!")
 
-# إعداد مكتبة جمناي
-genai.configure(api_key=GEMINI_API_KEY)
+# إعداد مكتبة جمناي بالمتغير القياسي
+genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 # تشغيل البوت
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
-# تنظيف أي اتصالات سابقة معلقة
 try:
     bot.remove_webhook()
 except:
@@ -47,7 +44,7 @@ except:
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "مرحباً بك يا هندسة! أنا جاهز ومستقر تماماً الآن. أرسل لي أي صورة تحتوي على قائمة مواد أو أسعار، وسأقوم بفرزها فوراً بواسطة الذكاء الاصطناعي.")
+    bot.reply_to(message, "مرحباً بك يا هندسة! البوت مستقر وجاهز للعمل الآن. أرسل لي أي صورة لقائمة مواد أو أسعار، وسأقوم بفرزها فوراً بذكاء Gemini.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_menu_photo(message):
@@ -71,6 +68,6 @@ def handle_menu_photo(message):
     except Exception as e:
         bot.reply_to(message, f"عذراً، حدث خطأ أثناء معالجة الصورة: {str(e)}")
 
-# استمرار تشغيل البوت دون توقف
-print("البوت الآمن يعمل الآن بنجاح وبأعلى كفاءة...")
+# استمرار التشغيل
+print("البوت الآمن يعمل الآن بنجاح...")
 bot.infinity_polling(skip_pending=True)
