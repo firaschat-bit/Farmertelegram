@@ -1,4 +1,21 @@
 import os
+import sys
+import subprocess
+
+# خدعة برمجية لتثبيت المكتبات تلقائياً داخل السيرفر دون الحاجة لملف requirements
+def install_packages():
+    required_packages = ["pyTelegramBotAPI", "Pillow", "google-genai"]
+    for package in required_packages:
+        try:
+            __import__(package.replace("-", "_"))
+        except ImportError:
+            print(f"جاري تثبيت المكتبة: {package} ...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# تشغيل التثبيت التلقائي فوراً عند إقلاع السيرفر
+install_packages()
+
+# الآن نستدعي المكتبات بأمان بعد ضِمان تثبيتها
 import telebot
 from google import genai
 from PIL import Image
@@ -13,7 +30,7 @@ def run_dummy_server():
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            self.wfile.write(b"Bot is running successfully!")
+            self.wfile.write(b"Bot is running successfully with auto-install!")
             
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), DummyHandler)
@@ -28,7 +45,7 @@ GEMINI_KEY = os.getenv('GEMINI_API_KEY')
 if not TELEGRAM_TOKEN or not GEMINI_KEY:
     raise ValueError("خطأ: تأكد من ضبط BOT_TOKEN و GEMINI_API_KEY في إعدادات Render!")
 
-# إعداد عميل جمناي الحديث (Google GenAI Client)
+# إعداد عميل جمناي الحديث
 client = genai.Client(api_key=GEMINI_KEY)
 
 # تشغيل بوت تيليجرام
@@ -41,14 +58,13 @@ except:
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "مرحباً بك يا هندسة! البوت مستقر وجاهز تماماً الآن. أرسل لي أي صورة لقائمة مواد أو أسعار، وسأقوم بفرزها وتنسيقها فوراً.")
+    bot.reply_to(message, "مرحباً بك يا هندسة! البوت مستقر وجاهز تماماً الآن عبر التحديث الذاتي. أرسل لي أي صورة لقائمة مواد أو أسعار لفرزها فوراً.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_menu_photo(message):
     try:
         bot.reply_to(message, "جاري معالجة الصورة وقراءة البيانات عبر Gemini، انتظر لحظة من فضلك...")
         
-        # تحميل الصورة من سيرفرات تيليجرام
         file_info = bot.get_file(message.photo[-1].file_id)
         downloaded_file = bot.download_file(file_info.file_path)
         
@@ -60,7 +76,6 @@ def handle_menu_photo(message):
             "ورتبها في جدول واضح ومنظم باللغة العربية مع تنظيم الترقيم والأسماء."
         )
         
-        # استدعاء النموذج عبر العميل الحديث المحدث
         response = client.models.generate_content(
             model='gemini-1.5-flash',
             contents=[image, prompt]
@@ -72,5 +87,5 @@ def handle_menu_photo(message):
         bot.reply_to(message, f"عذراً هندسة، حدثت مشكلة أثناء المعالجة: {str(e)}")
 
 # استمرار التشغيل
-print("البوت يعمل الآن بالبنية التحتية الحديثة...")
+print("البوت الذاتي الذكي يعمل الآن بنجاح...")
 bot.infinity_polling(skip_pending=True)
