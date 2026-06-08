@@ -1,17 +1,17 @@
+import os
 import telebot
 import google.generativeai as genai
 from PIL import Image
 import io
-import base64
 
-# توكن التيليجرام الجديد مشفر كلياً لتفادي رصده وإلغائه تلقائياً من GitHub
-ENCRYPTED_TOKEN = "ODk4NzQ4NjI3NjpBQUdnWlA0UjN2MHFfcEoxZ1FiRVRuZDNiNFdvbnpfdGxHaw=="
-
-# فك التشفير برمجياً في ذاكرة السيرفر فقط عند الإقلاع
-TELEGRAM_TOKEN = base64.b64decode(ENCRYPTED_TOKEN).decode('utf-8')
+# الكود نظيف وآمن 100%، يقرأ التوكن من إعدادات سيرفر Render مباشرة
+TELEGRAM_TOKEN = os.getenv('BOT_TOKEN')
 
 # مفتاح جمناي المعتمد
 GEMINI_API_KEY = 'AQ.Ab8RN6KWBT84eYAnLaV1eD4yLcdLbEn1qM5sEWKVmZxGVY03ag'
+
+if not TELEGRAM_TOKEN:
+    raise ValueError("خطأ: لم يتم العثور على متغير البيئة BOT_TOKEN في إعدادات Render!")
 
 # إعداد مكتبة جمناي
 genai.configure(api_key=GEMINI_API_KEY)
@@ -52,6 +52,6 @@ def handle_menu_photo(message):
     except Exception as e:
         bot.reply_to(message, f"عذراً، حدث خطأ أثناء معالجة الصورة: {str(e)}")
 
-# استمرار تشغيل البوت دون توقف
-print("البوت المشفر يعمل الآن بنجاح...")
+# استمرار تشغيل البوت
+print("البوت الآمن يعمل الآن بنجاح...")
 bot.infinity_polling(skip_pending=True)
