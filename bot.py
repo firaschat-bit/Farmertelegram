@@ -1,6 +1,6 @@
 import os
 import telebot
-import google.generativeai as genai
+from google import genai
 from PIL import Image
 import io
 import threading
@@ -13,7 +13,7 @@ def run_dummy_server():
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            self.wfile.write(b"Bot checking is live!")
+            self.wfile.write(b"Bot is running successfully!")
             
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), DummyHandler)
@@ -21,30 +21,17 @@ def run_dummy_server():
 
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
-# 2. سحب المتغيرات وطباعة فحص أمان في السجلات
+# 2. سحب المتغيرات الآمنة من بيئة Render
 TELEGRAM_TOKEN = os.getenv('BOT_TOKEN')
 GEMINI_KEY = os.getenv('GEMINI_API_KEY')
 
-print("--- فحص المتغيرات المستلمة من السيرفر ---")
-if TELEGRAM_TOKEN:
-    print(f"توكن تيليجرام موجود ويبدأ بـ: {TELEGRAM_TOKEN[:8]}")
-else:
-    print("خطأ: توكن تيليجرام غير موجود!")
-
-if GEMINI_KEY:
-    print(f"مفتاح جمناي موجود ويبدأ بـ: {GEMINI_KEY[:8]}")
-else:
-    print("خطأ: مفتاح جمناي غير موجود!")
-print("---------------------------------------")
-
 if not TELEGRAM_TOKEN or not GEMINI_KEY:
-    raise ValueError("توقف السيرفر: تأكد من إضافة BOT_TOKEN و GEMINI_API_KEY في إعدادات Render!")
+    raise ValueError("خطأ: تأكد من ضبط BOT_TOKEN و GEMINI_API_KEY في إعدادات Render!")
 
-# إعداد مكتبة جمناي
-genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+# إعداد عميل جمناي الحديث (Google GenAI Client)
+client = genai.Client(api_key=GEMINI_KEY)
 
-# تشغيل البوت
+# تشغيل بوت تيليجرام
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 try:
@@ -54,13 +41,14 @@ except:
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "مرحباً بك يا هندسة! البوت مستقر وجاهز للعمل الآن. أرسل لي أي صورة لقائمة مواد أو أسعار، وسأقوم بفرزها فوراً بذكاء Gemini.")
+    bot.reply_to(message, "مرحباً بك يا هندسة! البوت مستقر وجاهز تماماً الآن. أرسل لي أي صورة لقائمة مواد أو أسعار، وسأقوم بفرزها وتنسيقها فوراً.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_menu_photo(message):
     try:
-        bot.reply_to(message, "جاري معالجة الصورة وقراءة البيانات، انتظر لحظة من فضلك...")
+        bot.reply_to(message, "جاري معالجة الصورة وقراءة البيانات عبر Gemini، انتظر لحظة من فضلك...")
         
+        # تحميل الصورة من سيرفرات تيليجرام
         file_info = bot.get_file(message.photo[-1].file_id)
         downloaded_file = bot.download_file(file_info.file_path)
         
@@ -72,11 +60,17 @@ def handle_menu_photo(message):
             "ورتبها في جدول واضح ومنظم باللغة العربية مع تنظيم الترقيم والأسماء."
         )
         
-        response = model.generate_content([prompt, image])
+        # استدعاء النموذج عبر العميل الحديث المحدث
+        response = client.models.generate_content(
+            model='gemini-1.5-flash',
+            contents=[image, prompt]
+        )
+        
         bot.reply_to(message, response.text)
         
     except Exception as e:
-        bot.reply_to(message, f"عذراً، حدث خطأ أثناء معالجة الصورة: {str(e)}")
+        bot.reply_to(message, f"عذراً هندسة، حدثت مشكلة أثناء المعالجة: {str(e)}")
 
 # استمرار التشغيل
+print("البوت يعمل الآن بالبنية التحتية الحديثة...")
 bot.infinity_polling(skip_pending=True)
