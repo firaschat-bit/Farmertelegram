@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-# خدعة برمجية لتثبيت المكتبات تلقائياً داخل السيرفر دون الحاجة لملف requirements
+# تثبيت المكتبات تلقائياً داخل السيرفر
 def install_packages():
     required_packages = ["pyTelegramBotAPI", "Pillow", "google-genai"]
     for package in required_packages:
@@ -12,10 +12,8 @@ def install_packages():
             print(f"جاري تثبيت المكتبة: {package} ...")
             subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
-# تشغيل التثبيت التلقائي فوراً عند إقلاع السيرفر
 install_packages()
 
-# الآن نستدعي المكتبات بأمان بعد ضِمان تثبيتها
 import telebot
 from google import genai
 from PIL import Image
@@ -23,14 +21,14 @@ import io
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-# 1. تشغيل منفذ اتصال وهمي لاستقرار سيرفر Render
+# تشغيل منفذ اتصال وهمي لاستقرار سيرفر Render
 def run_dummy_server():
     class DummyHandler(BaseHTTPRequestHandler):
         def do_GET(self):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            self.wfile.write(b"Bot is running successfully with auto-install!")
+            self.wfile.write(b"Bot is live and kicking!")
             
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), DummyHandler)
@@ -38,17 +36,13 @@ def run_dummy_server():
 
 threading.Thread(target=run_dummy_server, daemon=True).start()
 
-# 2. سحب المتغيرات الآمنة من بيئة Render
 TELEGRAM_TOKEN = os.getenv('BOT_TOKEN')
 GEMINI_KEY = os.getenv('GEMINI_API_KEY')
 
 if not TELEGRAM_TOKEN or not GEMINI_KEY:
     raise ValueError("خطأ: تأكد من ضبط BOT_TOKEN و GEMINI_API_KEY في إعدادات Render!")
 
-# إعداد عميل جمناي الحديث
 client = genai.Client(api_key=GEMINI_KEY)
-
-# تشغيل بوت تيليجرام
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 try:
@@ -58,7 +52,7 @@ except:
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    bot.reply_to(message, "مرحباً بك يا هندسة! البوت مستقر وجاهز تماماً الآن عبر التحديث الذاتي. أرسل لي أي صورة لقائمة مواد أو أسعار لفرزها فوراً.")
+    bot.reply_to(message, "مرحباً بك يا هندسة! البوت مستقر وجاهز تماماً الآن. أرسل لي أي صورة لقائمة مواد أو أسعار لفرزها فوراً بذكاء Gemini.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_menu_photo(message):
@@ -86,6 +80,6 @@ def handle_menu_photo(message):
     except Exception as e:
         bot.reply_to(message, f"عذراً هندسة، حدثت مشكلة أثناء المعالجة: {str(e)}")
 
-# استمرار التشغيل
-print("البوت الذاتي الذكي يعمل الآن بنجاح...")
-bot.infinity_polling(skip_pending=True)
+print("البوت جاهز ويعمل...")
+# التعديل الهام لحل مشكلة 409 Conflict وتطهير جلسات الاتصال القديمة
+bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=30)
