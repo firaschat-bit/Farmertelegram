@@ -3,9 +3,12 @@ import sys
 import subprocess
 import threading
 import io
+import telebot
 from PIL import Image
+import google.generativeai as genai
+from flask import Flask, request
 
-# 1. التثبيت الذاتي للمكتبات (لن يظهر خطأ ModuleNotFoundError بعد الآن)
+# 1. تثبيت المكتبات الضرورية
 def install_requirements():
     required = ["pyTelegramBotAPI", "Pillow", "google-generativeai", "flask"]
     for package in required:
@@ -16,16 +19,14 @@ def install_requirements():
 
 install_requirements()
 
-import telebot
-import google.generativeai as genai
-from flask import Flask, request
-
-# 2. إعداد البوت و Gemini
-bot = telebot.TeleBot(os.getenv('BOT_TOKEN'))
+# 2. إعداد Gemini بدون مسارات تجريبية (v1beta)
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+
+# التعديل الحاسم هنا: استخدام النسخة المستقرة مباشرة
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# 3. إعداد Flask (نظام Webhook)
+# 3. إعداد البوت و Flask
+bot = telebot.TeleBot(os.getenv('BOT_TOKEN'))
 app = Flask(__name__)
 
 @app.route('/' + os.getenv('BOT_TOKEN'), methods=['POST'])
@@ -37,22 +38,23 @@ def webhook():
 
 @bot.message_handler(commands=['start'])
 def start(m):
-    bot.reply_to(m, "أهلاً! أرسل لي صورة الفاتورة.")
+    bot.reply_to(m, "جاهز يا هندسة! أرسل صورة الفاتورة.")
 
 @bot.message_handler(content_types=['photo'])
 def handle_photo(m):
-    status = bot.reply_to(m, "⏳ جاري المعالجة...")
+    status = bot.reply_to(m, "⏳ جاري التحليل...")
     try:
         file_info = bot.get_file(m.photo[-1].file_id)
         img = Image.open(io.BytesIO(bot.download_file(file_info.file_path)))
-        # استخدام الموديل المستقر
-        response = model.generate_content(["استخرج بيانات الفاتورة في جدول Markdown منظم.", img])
+        
+        # استدعاء الموديل بوضوح
+        response = model.generate_content(["قم باستخراج بيانات الفاتورة في جدول Markdown منظم.", img])
+        
         bot.delete_message(m.chat.id, status.message_id)
         bot.reply_to(m, response.text, parse_mode="Markdown")
     except Exception as e:
-        bot.edit_message_text(f"❌ خطأ: {str(e)}", m.chat.id, status.message_id)
+        bot.edit_message_text(f"❌ خطأ تقني:\n{str(e)}", m.chat.id, status.message_id)
 
-# 4. تشغيل الـ Webhook
 if __name__ == "__main__":
     bot.remove_webhook()
     bot.set_webhook(url=os.getenv('RENDER_EXTERNAL_URL') + '/' + os.getenv('BOT_TOKEN'))
